@@ -5,7 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Shopping list app</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
+        // Supabase 초기화
+        const SUPABASE_URL = 'https://vkdqkfyxpvjosfaujzyd.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZrZHFrZnl4cHZqb3NmYXVqenlkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA2NjkwMjIsImV4cCI6MjA4NjI0NTAyMn0.st_3rV5Pr7PXcDrjMs_s1pqFi6AUgm6LshyaxGnqI-U';
+        
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        
         tailwind.config = {
             darkMode: 'class',
             theme: {
@@ -416,8 +423,9 @@
         let filteredItems = [];
         
         // 초기화
-        document.addEventListener('DOMContentLoaded', function() {
-            loadFromStorage();
+        document.addEventListener('DOMContentLoaded', async function() {
+            await loadFromStorage();
+            setupRealtimeSubscription();
             updateStats();
             renderChecklist();
             
@@ -429,93 +437,213 @@
             });
         });
         
-        // localStorage에서 데이터 로드
-        function loadFromStorage() {
-            const stored = localStorage.getItem('checklist-items');
-            if (stored) {
-                try {
-                    items = JSON.parse(stored);
-                } catch (e) {
-                    console.error('Failed to load items from localStorage:', e);
-                    items = [];
-                }
+        // Supabase에서 데이터 로드
+        async function loadFromStorage() {
+            try {
+                const { data, error } = await supabase
+                    .from('shopping_items')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+                
+                if (error) throw error;
+                
+                // Supabase 데이터를 기존 형식으로 변환
+                items = data.map(item => ({
+                    id: item.id,
+                    text: item.task,
+                    completed: item.is_completed,
+                    createdAt: item.created_at
+                }));
+            } catch (error) {
+                console.error('Failed to load items from Supabase:', error);
+                items = [];
             }
         }
         
-        // localStorage에 데이터 저장
-        function saveToStorage() {
-            localStorage.setItem('checklist-items', JSON.stringify(items));
+        // Supabase에 데이터 저장 (삽입/업데이트/삭제)
+        async function saveToStorage() {
+            // Supabase는 실시간 동기화를 사용하므로 별도 저장 불필요
+        }
+        
+        // Supabase에 아이템 삽입
+        async function insertItemToSupabase(item) {
+            const { error } = await supabase
+                .from('shopping_items')
+                .insert({
+                    id: item.id,
+                    task: item.text,
+                    is_completed: item.completed,
+                    created_at: item.createdAt
+                });
+            
+            if (error) {
+                console.error('Failed to insert item:', error);
+                throw error;
+            }
+        }
+        
+        // Supabase에서 아이템 업데이트
+        async function updateItemInSupabase(id, updates) {
+            const { error } = await supabase
+                .from('shopping_items')
+                .update({
+                    task: updates.text,
+                    is_completed: updates.completed
+                })
+                .eq('id', id);
+            
+            if (error) {
+                console.error('Failed to update item:', error);
+                throw error;
+            }
+        }
+        
+        // Supabase에서 아이템 삭제
+        async function deleteItemFromSupabase(id) {
+            const { error } = await supabase
+                .from('shopping_items')
+                .delete()
+                .eq('id', id);
+            
+            if (error) {
+                console.error('Failed to delete item:', error);
+                throw error;
+            }
+        }
+        
+        // 모든 아이템 삭제
+        async function clearAllFromSupabase() {
+            const { error } = await supabase
+                .from('shopping_items')
+                .delete()
+                .neq('id', '00000000-0000-0000-0000-000000000000'); // 모든 행 삭제
+            
+            if (error) {
+                console.error('Failed to clear all items:', error);
+                throw error;
+            }
+        }
+        
+        // Supabase 실시간 구독 설정
+        function setupRealtimeSubscription() {
+            supabase
+                .channel('shopping_items_changes')
+                .on(
+                    'postgres_changes',
+                    { event: '*', schema: 'public', table: 'shopping_items' },
+                    (payload) => {
+                        console.log('Real-time change received:', payload);
+                        loadFromStorage().then(() => {
+                            updateStats();
+                            renderChecklist();
+                        });
+                    }
+                )
+                .subscribe();
         }
         
         // 아이템 추가
-        function addItem() {
+        async function addItem() {
             const input = document.getElementById('newItemInput');
             const text = input.value.trim();
             
             if (text === '') return;
             
             const newItem = {
-                id: Date.now(),
+                id: crypto.randomUUID(),
                 text: text,
                 completed: false,
                 createdAt: new Date().toISOString()
             };
             
-            items.unshift(newItem);
-            input.value = '';
-            saveToStorage();
-            updateStats();
-            renderChecklist();
-            
-            // 추가 애니메이션
-            animateNewItem(newItem.id);
+            try {
+                await insertItemToSupabase(newItem);
+                items.unshift(newItem);
+                input.value = '';
+                updateStats();
+                renderChecklist();
+                animateNewItem(newItem.id);
+            } catch (error) {
+                console.error('Failed to add item:', error);
+            }
         }
         
         // 아이템 삭제
-        function deleteItem(id) {
-            items = items.filter(item => item.id !== id);
-            saveToStorage();
-            updateStats();
-            renderChecklist();
+        async function deleteItem(id) {
+            try {
+                await deleteItemFromSupabase(id);
+                items = items.filter(item => item.id !== id);
+                updateStats();
+                renderChecklist();
+            } catch (error) {
+                console.error('Failed to delete item:', error);
+            }
         }
         
         // 아이템 토글
-        function toggleItem(id) {
+        async function toggleItem(id) {
             const item = items.find(item => item.id === id);
             if (item) {
                 item.completed = !item.completed;
-                saveToStorage();
-                updateStats();
-                renderChecklist();
+                try {
+                    await updateItemInSupabase(id, item);
+                    updateStats();
+                    renderChecklist();
+                } catch (error) {
+                    console.error('Failed to toggle item:', error);
+                }
             }
         }
         
         // 모두 토글
-        function toggleAll() {
+        async function toggleAll() {
             const allCompleted = items.every(item => item.completed);
-            items.forEach(item => {
-                item.completed = !allCompleted;
-            });
-            saveToStorage();
-            updateStats();
-            renderChecklist();
+            const updates = items.map(item => ({
+                id: item.id,
+                text: item.text,
+                completed: !allCompleted
+            }));
+            
+            try {
+                for (const update of updates) {
+                    await updateItemInSupabase(update.id, update);
+                }
+                items.forEach(item => {
+                    item.completed = !allCompleted;
+                });
+                updateStats();
+                renderChecklist();
+            } catch (error) {
+                console.error('Failed to toggle all items:', error);
+            }
         }
         
         // 완료된 항목 삭제
-        function clearCompleted() {
-            items = items.filter(item => !item.completed);
-            saveToStorage();
-            updateStats();
-            renderChecklist();
+        async function clearCompleted() {
+            const completedItems = items.filter(item => item.completed);
+            try {
+                for (const item of completedItems) {
+                    await deleteItemFromSupabase(item.id);
+                }
+                items = items.filter(item => !item.completed);
+                updateStats();
+                renderChecklist();
+            } catch (error) {
+                console.error('Failed to clear completed items:', error);
+            }
         }
         
         // 전체 삭제
-        function clearAll() {
+        async function clearAll() {
             if (confirm('모든 항목을 삭제하시겠습니까?')) {
-                items = [];
-                saveToStorage();
-                updateStats();
-                renderChecklist();
+                try {
+                    await clearAllFromSupabase();
+                    items = [];
+                    updateStats();
+                    renderChecklist();
+                } catch (error) {
+                    console.error('Failed to clear all items:', error);
+                }
             }
         }
         
