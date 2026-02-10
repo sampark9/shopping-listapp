@@ -16,15 +16,10 @@
         const SUPABASE_URL = 'https://vkdqkfyxpvjosfaujzyd.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZrZHFrZnl4cHZqb3NmYXVqenlkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA2NjkwMjIsImV4cCI6MjA4NjI0NTAyMn0.st_3rV5Pr7PXcDrjMs_s1pqFi6AUgm6LshyaxGnqI-U';
         
-        // 올바른 Supabase 클라이언트 초기화 방식
-        let supabase;
-        try {
-            const { createClient } = window.supabase;
-            supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-            console.log('✅ Supabase 클라이언트 초기화 성공');
-        } catch (error) {
-            console.error('❌ Supabase 클라이언트 초기화 실패:', error);
-        }
+        // 올바른 Supabase 클라이언트 초기화 방식 (이 블록 외에 다른 supabase 선언 금지)
+        const { createClient } = window.supabase;
+        const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+        console.log('✅ Supabase 클라이언트 초기화 성공');
         
         tailwind.config = {
             darkMode: 'class',
