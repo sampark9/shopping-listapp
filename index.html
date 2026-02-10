@@ -5,16 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Shopping list app</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
         // Supabase 설정 정보 (MCP 도구로 자동 조회)
         const SUPABASE_URL = 'https://vkdqkfyxpvjosfaujzyd.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZrZHFrZnl4cHZqb3NmYXVqenlkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA2NjkwMjIsImV4cCI6MjA4NjI0NTAyMn0.st_3rV5Pr7PXcDrjMs_s1pqFi6AUgm6LshyaxGnqI-U';
         
-        // Supabase 클라이언트 초기화
+        // Supabase 클라이언트 초기화 (표준 문법)
         let supabase;
         try {
-            supabase = supabaseJs.createClient(SUPABASE_URL, SUPABASE_KEY);
+            const { createClient } = supabase;
+            supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
             console.log('✅ Supabase 클라이언트 초기화 성공');
         } catch (error) {
             console.error('❌ Supabase 클라이언트 초기화 실패:', error);
@@ -447,6 +448,14 @@
         // Supabase에서 데이터 로드
         async function loadFromStorage() {
             console.log('📥 Supabase에서 데이터 로드 중...');
+            
+            // supabase 객체가 정상적으로 생성되었는지 확인
+            if (!supabase || typeof supabase.from !== 'function') {
+                console.error('❌ Supabase 클라이언트가 초기화되지 않음');
+                items = [];
+                return;
+            }
+            
             try {
                 const { data, error } = await supabase
                     .from('shopping_items')
