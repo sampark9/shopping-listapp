@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Checklist - 체크리스트 앱</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'sans': ['Pretendard', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --danger: #ef4444;
+            --danger-hover: #dc2626;
+            --success: #10b981;
+            --bg-primary: #f8fafc;
+            --bg-secondary: #f1f5f9;
+            --text-primary: #1f2937;
+            --text-secondary: #6b7280;
+            --border: #e5e7eb;
+            --shadow: rgba(0, 0, 0, 0.1);
+        }
+        
+        [data-theme="dark"] {
+            --bg-primary: #1f2937;
+            --bg-secondary: #111827;
+            --text-primary: #f9fafb;
+            --text-secondary: #d1d5db;
+            --border: #374151;
+            --shadow: rgba(0, 0, 0, 0.3);
+        }
+        
+        body {
+            font-family: 'Pretendard', system-ui, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 0.5rem;
+        }
+        
+        .header p {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+        
+        .input-section {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px var(--shadow);
+        }
+        
+        .input-group {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 1rem;
+        }
+        
+        .input-wrapper {
+            flex: 1;
+            position: relative;
+        }
+        
+        .input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-size: 1rem;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            transition: border-color 0.2s ease;
+        }
+        
+        .input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 1rem;
+        }
+        
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: var(--primary-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px var(--shadow);
+        }
+        
+        .btn-secondary {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 2px solid var(--border);
+        }
+        
+        .btn-secondary:hover {
+            background: var(--border);
+        }
+        
+        .stats-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .stat-card {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+            box-shadow: 0 2px 4px var(--shadow);
+        }
+        
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+        
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-top: 0.25rem;
+        }
+        
+        .checklist-container {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            box-shadow: 0 4px 6px var(--shadow);
+        }
+        
+        .checklist-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .checklist-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+        
+        .checklist-controls {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .checklist-body {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .search-bar {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .search-input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-size: 0.9rem;
+        }
+        
+        .checklist-item {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: background-color 0.2s ease;
+        }
+        
+        .checklist-item:hover {
+            background: var(--bg-primary);
+        }
+        
+        .checklist-item:last-child {
+            border-bottom: none;
+        }
+        
+        .checkbox {
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--border);
+            border-radius: 4px;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.2s ease;
+        }
+        
+        .checkbox.checked {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+        
+        .checkbox.checked::after {
+            content: '✓';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .item-text {
+            flex: 1;
+            color: var(--text-primary);
+            cursor: pointer;
+        }
+        
+        .item-text.checked {
+            text-decoration: line-through;
+            color: var(--text-secondary);
+        }
+        
+        .delete-btn {
+            background: transparent;
+            color: var(--danger);
+            border: none;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+        }
+        
+        .delete-btn:hover {
+            background: var(--danger);
+            color: white;
+        }
+        
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--bg-secondary);
+            border: 2px solid var(--border);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 4px var(--shadow);
+        }
+        
+        .clear-btn {
+            background: var(--danger);
+            color: white;
+        }
+        
+        .clear-btn:hover {
+            background: var(--danger-hover);
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1.5rem;
+            color: var(--text-secondary);
+        }
+        
+        .empty-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+        
+        @media (max-width: 640px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .stats-section {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .input-group {
+                flex-direction: column;
+                gap: 8px;
+            }
+            
+            .checklist-controls {
+                flex-wrap: wrap;
+            }
+        }
+    </style>
+</head>
+<body data-theme="light">
+    <div class="container">
+        <header>
+            <h1>Smart Checklist</h1>
+            <p>효율적인 할 일 관리를 위한 현대적 체크리스트 앱</p>
+        </header>
+        
+        <div class="stats-section">
+            <div class="stat-card">
+                <div class="stat-number" id="totalCount">0</div>
+                <div class="stat-label">전체 항목</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="completedCount">0</div>
+                <div class="stat-label">완료된 항목</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="completionRate">0%</div>
+                <div class="stat-label">완료율</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="pendingCount">0</div>
+                <div class="stat-label">남은 항목</div>
+            </div>
+        </div>
+        
+        <div class="input-section">
+            <div class="input-group">
+                <div class="input-wrapper">
+                    <input type="text" id="newItemInput" class="input" placeholder="새 항목 추가하기..." autofocus>
+                </div>
+                <button class="btn btn-primary" onclick="addItem()">추가</button>
+            </div>
+            <div class="input-group">
+                <input type="text" id="searchInput" class="search-input" placeholder="항목 검색..." onkeyup="searchItems()">
+            </div>
+        </div>
+        
+        <div class="checklist-container">
+            <div class="checklist-header">
+                <div class="checklist-title">체크리스트</div>
+                <div class="checklist-controls">
+                    <button class="btn btn-secondary" onclick="toggleAll()">모두 토글</button>
+                    <button class="btn btn-secondary" onclick="clearCompleted()">완료된 항목 삭제</button>
+                    <button class="btn clear-btn" onclick="clearAll()">전체 삭제</button>
+                </div>
+            </div>
+            <div class="search-bar" style="display: none;">
+                <input type="text" class="search-input" placeholder="검색 결과..." id="searchResultsInput">
+            </div>
+            <div class="checklist-body" id="checklistBody">
+                <div class="empty-state">
+                    <div class="empty-icon">📝</div>
+                    <div>항목이 없습니다. 첫 번째 항목을 추가해보세요!</div>
+                </div>
+            </div>
+        </div>
+        
+        <button class="theme-toggle" onclick="toggleTheme()" title="테마 전환">
+            <span id="themeIcon">🌙</span>
+        </button>
+    </div>
+    
+    <script>
+        let items = [];
+        let filteredItems = [];
+        
+        // 초기화
+        document.addEventListener('DOMContentLoaded', function() {
+            loadFromStorage();
+            updateStats();
+            renderChecklist();
+            
+            // 입력 필드에서 엔터 키 이벤트
+            document.getElementById('newItemInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    addItem();
+                }
+            });
+        });
+        
+        // localStorage에서 데이터 로드
+        function loadFromStorage() {
+            const stored = localStorage.getItem('checklist-items');
+            if (stored) {
+                try {
+                    items = JSON.parse(stored);
+                } catch (e) {
+                    console.error('Failed to load items from localStorage:', e);
+                    items = [];
+                }
+            }
+        }
+        
+        // localStorage에 데이터 저장
+        function saveToStorage() {
+            localStorage.setItem('checklist-items', JSON.stringify(items));
+        }
+        
+        // 아이템 추가
+        function addItem() {
+            const input = document.getElementById('newItemInput');
+            const text = input.value.trim();
+            
+            if (text === '') return;
+            
+            const newItem = {
+                id: Date.now(),
+                text: text,
+                completed: false,
+                createdAt: new Date().toISOString()
+            };
+            
+            items.unshift(newItem);
+            input.value = '';
+            saveToStorage();
+            updateStats();
+            renderChecklist();
+            
+            // 추가 애니메이션
+            animateNewItem(newItem.id);
+        }
+        
+        // 아이템 삭제
+        function deleteItem(id) {
+            items = items.filter(item => item.id !== id);
+            saveToStorage();
+            updateStats();
+            renderChecklist();
+        }
+        
+        // 아이템 토글
+        function toggleItem(id) {
+            const item = items.find(item => item.id === id);
+            if (item) {
+                item.completed = !item.completed;
+                saveToStorage();
+                updateStats();
+                renderChecklist();
+            }
+        }
+        
+        // 모두 토글
+        function toggleAll() {
+            const allCompleted = items.every(item => item.completed);
+            items.forEach(item => {
+                item.completed = !allCompleted;
+            });
+            saveToStorage();
+            updateStats();
+            renderChecklist();
+        }
+        
+        // 완료된 항목 삭제
+        function clearCompleted() {
+            items = items.filter(item => !item.completed);
+            saveToStorage();
+            updateStats();
+            renderChecklist();
+        }
+        
+        // 전체 삭제
+        function clearAll() {
+            if (confirm('모든 항목을 삭제하시겠습니까?')) {
+                items = [];
+                saveToStorage();
+                updateStats();
+                renderChecklist();
+            }
+        }
+        
+        // 검색
+        function searchItems() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const searchResults = document.getElementById('searchResultsInput');
+            
+            if (searchTerm === '') {
+                hideSearchResults();
+                filteredItems = [...items];
+            } else {
+                filteredItems = items.filter(item => 
+                    item.text.toLowerCase().includes(searchTerm)
+                );
+                showSearchResults(searchTerm);
+            }
+            
+            renderChecklist();
+        }
+        
+        function showSearchResults(searchTerm) {
+            const searchResults = document.getElementById('searchResultsInput');
+            searchResults.value = searchTerm;
+            searchResults.parentElement.style.display = 'block';
+        }
+        
+        function hideSearchResults() {
+            const searchResults = document.getElementById('searchResultsInput');
+            searchResults.value = '';
+            searchResults.parentElement.style.display = 'none';
+            filteredItems = [...items];
+        }
+        
+        // 통계 업데이트
+        function updateStats() {
+            const total = items.length;
+            const completed = items.filter(item => item.completed).length;
+            const pending = total - completed;
+            const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
+            
+            document.getElementById('totalCount').textContent = total;
+            document.getElementById('completedCount').textContent = completed;
+            document.getElementById('completionRate').textContent = rate + '%';
+            document.getElementById('pendingCount').textContent = pending;
+        }
+        
+        // 체크리스트 렌더링
+        function renderChecklist() {
+            const container = document.getElementById('checklistBody');
+            const itemsToRender = filteredItems.length > 0 || document.getElementById('searchInput').value ? filteredItems : items;
+            
+            if (itemsToRender.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">📝</div>
+                        <div>항목이 없습니다. 첫 번째 항목을 추가해보세요!</div>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = itemsToRender.map(item => `
+                <div class="checklist-item" data-id="${item.id}">
+                    <div class="checkbox ${item.completed ? 'checked' : ''}" onclick="toggleItem(${item.id})"></div>
+                    <div class="item-text ${item.completed ? 'checked' : ''}" onclick="toggleItem(${item.id})">${escapeHtml(item.text)}</div>
+                    <button class="delete-btn" onclick="deleteItem(${item.id})" title="삭제">🗑️</button>
+                </div>
+            `).join('');
+        }
+        
+        // 테마 전환
+        function toggleTheme() {
+            const body = document.body;
+            const currentTheme = body.getAttribute('data-theme');
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            const themeIcon = document.getElementById('themeIcon');
+            
+            body.setAttribute('data-theme', newTheme);
+            themeIcon.textContent = newTheme === 'light' ? '🌙' : '🌞';
+            
+            localStorage.setItem('theme', newTheme);
+        }
+        
+        // HTML 이스케이프
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // 아이템 추가 애니메이션
+        function animateNewItem(id) {
+            setTimeout(() => {
+                const element = document.querySelector(`[data-id="${id}"]`);
+                if (element) {
+                    element.style.backgroundColor = 'var(--success)';
+                    element.style.transform = 'scale(1.02)';
+                    
+                    setTimeout(() => {
+                        element.style.backgroundColor = '';
+                        element.style.transform = '';
+                    }, 300);
+                }
+            }, 100);
+        }
+        
+        // 키보드 단축키
+        document.addEventListener('keydown', function(e) {
+            // Ctrl/Cmd + K: 검색
+            if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                e.preventDefault();
+                document.getElementById('searchInput').focus();
+            }
+            
+            // Ctrl/Cmd + N: 새 항목
+            if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+                e.preventDefault();
+                document.getElementById('newItemInput').focus();
+            }
+            
+            // Ctrl/Cmd + D: 완료된 항목 삭제
+            if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
+                e.preventDefault();
+                clearCompleted();
+            }
+            
+            // Escape: 검색 초기화
+            if (e.key === 'Escape') {
+                document.getElementById('searchInput').value = '';
+                searchItems();
+            }
+        });
+        
+        // 테마 복원
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme) {
+            document.body.setAttribute('data-theme', savedTheme);
+            document.getElementById('themeIcon').textContent = savedTheme === 'light' ? '🌙' : '🌞';
+        }
+    </script>
+</body>
+</html>
