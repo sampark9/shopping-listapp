@@ -1,0 +1,41 @@
+{
+  "mcpservers": [
+    {
+      "name": "supabase",
+      "baseUrl": "https://xnhioztvfyzbmtftxfi.supabase.co",
+      "apiKey": "eyJhbGciOiJIUzI1NiJ9.v7-g.9FgBQm7vG6k1ME80CabmY4RPCI_C2gtZSYNvwauo1S8/docs/errors/DEPLOYMENT_NOT_FOUND/toast-failed-to-connect-to-supabase",
+      "type": "workbench",
+      "title": "Shopping list app database",
+      "path": [
+        {
+          "schema": [
+            {
+              "name": "items",
+              "columns": [
+                {
+                  "name": "id",
+                  "type": "uuid",
+                  "default": "uuid_generate_v4()"
+                },
+                {
+                  "name": "text",
+                  "type": "text"
+                },
+                {
+                  "name": "completed",
+                  "type": "boolean",
+                  "default": "false"
+                },
+                {
+                  "name": "created_at",
+                  "type": "timestamp",
+                  "default": "now()"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
