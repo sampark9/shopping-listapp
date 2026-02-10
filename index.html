@@ -16,9 +16,9 @@
         const SUPABASE_URL = 'https://vkdqkfyxpvjosfaujzyd.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZrZHFrZnl4cHZqb3NmYXVqenlkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA2NjkwMjIsImV4cCI6MjA4NjI0NTAyMn0.st_3rV5Pr7PXcDrjMs_s1pqFi6AUgm6LshyaxGnqI-U';
         
-        // 올바른 Supabase 클라이언트 초기화 방식 (이 블록 외에 다른 supabase 선언 금지)
-        const { createClient } = window.supabase;
-        const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+        // Supabase 클라이언트 초기화 (supabase UMD에서 createClient를 가져옴)
+        const { createClient } = supabase;
+        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY);
         console.log('✅ Supabase 클라이언트 초기화 성공');
         
         tailwind.config = {
@@ -449,15 +449,15 @@
         async function loadFromStorage() {
             console.log('📥 Supabase에서 데이터 로드 중...');
             
-            // supabase 객체가 정상적으로 생성되었는지 확인
-            if (!supabase || typeof supabase.from !== 'function') {
+            // supabaseClient 객체가 정상적으로 생성되었는지 확인
+            if (!supabaseClient || typeof supabaseClient.from !== 'function') {
                 console.error('❌ Supabase 클라이언트가 초기화되지 않음');
                 items = [];
                 return;
             }
             
             try {
-                const { data, error } = await supabase
+                const { data, error } = await supabaseClient
                     .from('shopping_items')
                     .select('*')
                     .order('created_at', { ascending: false });
@@ -486,7 +486,7 @@
         async function insertItemToSupabase(item) {
             console.log('➕ Supabase에 아이템 추가:', item.text);
             
-            const { data, error } = await supabase
+            const { data, error } = await supabaseClient
                 .from('shopping_items')
                 .insert({
                     id: item.id,
@@ -507,7 +507,7 @@
         async function updateItemInSupabase(id, updates) {
             console.log('✏️ Supabase에서 아이템 업데이트:', id);
             
-            const { data, error } = await supabase
+            const { data, error } = await supabaseClient
                 .from('shopping_items')
                 .update({
                     task: updates.text,
@@ -528,7 +528,7 @@
         async function deleteItemFromSupabase(id) {
             console.log('🗑️ Supabase에서 아이템 삭제:', id);
             
-            const { data, error } = await supabase
+            const { data, error } = await supabaseClient
                 .from('shopping_items')
                 .delete()
                 .eq('id', id)
@@ -546,7 +546,7 @@
         async function clearAllFromSupabase() {
             console.log('🗑️ Supabase에서 모든 아이템 삭제...');
             
-            const { data, error } = await supabase
+            const { data, error } = await supabaseClient
                 .from('shopping_items')
                 .delete()
                 .neq('id', '00000000-0000-0000-0000-000000000000')
@@ -564,7 +564,7 @@
         function setupRealtimeSubscription() {
             console.log('🔄 Supabase 실시간 구독 설정 중...');
             
-            supabase
+            supabaseClient
                 .channel('shopping_items_changes')
                 .on(
                     'postgres_changes',
@@ -764,9 +764,9 @@
             
             container.innerHTML = itemsToRender.map(item => `
                 <div class="checklist-item" data-id="${item.id}">
-                    <div class="checkbox ${item.completed ? 'checked' : ''}" onclick="toggleItem(${item.id})"></div>
-                    <div class="item-text ${item.completed ? 'checked' : ''}" onclick="toggleItem(${item.id})">${escapeHtml(item.text)}</div>
-                    <button class="delete-btn" onclick="deleteItem(${item.id})" title="삭제">🗑️</button>
+                    <div class="checkbox ${item.completed ? 'checked' : ''}" onclick="toggleItem('${item.id}')"></div>
+                    <div class="item-text ${item.completed ? 'checked' : ''}" onclick="toggleItem('${item.id}')">${escapeHtml(item.text)}</div>
+                    <button class="delete-btn" onclick="deleteItem('${item.id}')" title="삭제">🗑️</button>
                 </div>
             `).join('');
         }
